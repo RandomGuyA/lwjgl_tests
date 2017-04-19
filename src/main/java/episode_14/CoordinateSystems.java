@@ -30,6 +30,8 @@
 package episode_14;
 
 import org.lwjgl.LWJGLException;
+import org.lwjgl.input.Keyboard;
+import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.DisplayMode;
 import org.newdawn.slick.opengl.Texture;
@@ -42,6 +44,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 
+import static org.jbox2d.common.MathUtils.clamp;
 import static org.lwjgl.opengl.GL11.*;
 
 /**
@@ -57,7 +60,7 @@ public class CoordinateSystems {
     public static void main(String[] args) {
 
         try {
-            Display.setDisplayMode(new DisplayMode(1368, 979));
+            Display.setDisplayMode(new DisplayMode(1200, 900));
             Display.setTitle("Coordinate Systems");
             Display.create();
         } catch (LWJGLException e) {
@@ -80,64 +83,61 @@ public class CoordinateSystems {
         // Initialization code OpenGL
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
-        glOrtho(0, 1368, 979, 0, 1, -1);
+        glOrtho(0, 1200, 900, 0, 1, -1);
         // glOrtho(-1, 1, -1, 1, -1, 1);
         glMatrixMode(GL_MODELVIEW);
+        float translate_x = 0;
+        float translate_y = 0;
+        float delta = 12.0f;
+        float scale = 0.05f;
+        float scaleDelta = 0.5f;
 
         while (!Display.isCloseRequested()) {
             // Render
 
-            glClearColor(0, 0, 0, 0); // add this
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            //glClearColor(0, 0, 0, 0); // add this
+            glClear(GL_COLOR_BUFFER_BIT);
 
 
            // glBindTexture(GL_TEXTURE_2D, texture.getTextureID());
 
             // Put another matrix, a clone of the current one, on the matrix stack.
             glPushMatrix();
+            glTranslatef(translate_x, translate_y, 0);
+            glScaled(scale, scale, 1);
+
+
+            int dWheel = Mouse.getDWheel();
+            if (dWheel < 0) {
+                scale += 0.05f * dWheel;
+                scale = clamp(scale, 0.000125f, 4f); //clamp(x,min,max)
+
+            } else if (dWheel > 0){
+
+                scale += 0.01f * dWheel;
+                scale = clamp(scale, 0.000125f, 4f); //clamp(x,min,max)
+
+            }
+
 
             // Push the screen to the left or to the right, depending on translate_x.
-            glTranslatef(0, 0, 0);
-
-            // Do some OpenGL rendering (code from SimpleOGLRenderer.java).
-            /*
-            glBegin(GL_QUADS);
-
-            int SIZE = 32;
-            int space = 4;
-
-            for (int y = 0; y < SIZE; y++) {
-                for (int x = 0; x < SIZE; x++) {
-
-                    glEnable(GL_TEXTURE_2D);
-                    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE,  GL_MODULATE);
-                    glBindTexture(GL_TEXTURE_2D, texture.getTextureID());
-
-                    glColor4f(0f, 0.9f, 0.2f, 1);
-
-                    glTexCoord2f((x * SIZE) + space, (y * SIZE) + space);
-                    glVertex2f((x * SIZE) + space, (y * SIZE) + space); // Upper-left
-
-                   // glColor4f(0f, 0.9f, 0.6f, 1);
-                    glTexCoord2f((x * SIZE) + space, (y * SIZE) + SIZE);
-                    glVertex2f((x * SIZE) + space, (y * SIZE) + SIZE); // Upper-right
-
-                    //glColor4f(0f, 0.9f, 0.6f, 1);
-                    glTexCoord2f((x * SIZE) + SIZE, (y * SIZE) + SIZE);
-                    glVertex2f((x * SIZE) + SIZE, (y * SIZE) + SIZE); // Bottom-right
-
-                    //glColor4f(0f, 0.9f, 0.6f, 1);
-                    glTexCoord2f((x * SIZE) + SIZE, (y * SIZE) + space);
-                    glVertex2f((x * SIZE) + SIZE, (y * SIZE) + space); // Bottom-left
-
-                }
+            if (Keyboard.isKeyDown(Keyboard.KEY_W)) {
+                translate_y+=delta;
             }
-            glEnd();
-            glFlush();
-            // Dispose of the translations on the matrix.
-            glPopMatrix();
-            */
+            if (Keyboard.isKeyDown(Keyboard.KEY_S)) {
+                translate_y-=delta;
+            }
+            if (Keyboard.isKeyDown(Keyboard.KEY_A)) {
+                translate_x+=delta;
+            }
+            if (Keyboard.isKeyDown(Keyboard.KEY_D)) {
+                translate_x-=delta;
+            }
+
             DrawImage();
+
+
+            glPopMatrix();
 
             Display.update();
             Display.sync(60);
@@ -149,58 +149,34 @@ public class CoordinateSystems {
 
     static void DrawImage() {
 
-        glMatrixMode(GL_PROJECTION);
-        glPushMatrix();
-        glLoadIdentity();
-        glOrtho(0.0, 1368, 0.0, 979, -1.0, 1.0);
-        glMatrixMode(GL_MODELVIEW);
-        glPushMatrix();
-
-
-        glLoadIdentity();
-        glDisable(GL_LIGHTING);
-
-
-        glColor3f(1,1,1);
         glEnable(GL_TEXTURE_2D);
+        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE,  GL_MODULATE);
         glBindTexture(GL_TEXTURE_2D, texture.getTextureID());
 
-        glColor3f(0,0.8f,0.2f);
-        // Draw a textured quad
         glBegin(GL_QUADS);
 
         int SIZE = 32;
         int space = 0;
 
-        for (int y = 0; y < terrain.getHeight(); y++) {
-            for (int x = 0; x < terrain.getWidth(); x++) {
+        for (int y = 0; y < terrain.getHeight()-1; y++) {
+            for (int x = 0; x < terrain.getWidth()-1; x++) {
 
-                glEnable(GL_TEXTURE_2D);
-                glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE,  GL_MODULATE);
-                glBindTexture(GL_TEXTURE_2D, texture.getTextureID());
 
-                int rgb = terrain.getRGB(x,y);
-                int red = (rgb >> 16) & 0xFF;
-                int green = (rgb >> 8) & 0xFF;
-                int blue = rgb & 0xFF;
 
-                float r = (1.0f/255)*red;
-                float g = (1.0f/255)*green;
-                float b = (1.0f/255)*blue;
-
-                glColor4f(r, g, b, 1);
+                setColor(x,y);
 
                 glTexCoord2f(0, 0);
                 glVertex2f((x * SIZE) + space, (y * SIZE) + space); // Upper-left
 
+                setColor(x,y+1);
                 // glColor4f(0f, 0.9f, 0.6f, 1);
                 glTexCoord2f(0, 1);
                 glVertex2f((x * SIZE) + space, (y * SIZE) + SIZE); // Upper-right
-
+                setColor(x+1,y+1);
                 //glColor4f(0f, 0.9f, 0.6f, 1);
                 glTexCoord2f(1, 1);
                 glVertex2f((x * SIZE) + SIZE, (y * SIZE) + SIZE); // Bottom-right
-
+                setColor(x+1,y);
                 //glColor4f(0f, 0.9f, 0.6f, 1);
                 glTexCoord2f(1, 0);
                 glVertex2f((x * SIZE) + SIZE, (y * SIZE) + space); // Bottom-left
@@ -210,16 +186,27 @@ public class CoordinateSystems {
 
         glEnd();
 
-
         glDisable(GL_TEXTURE_2D);
-        glPopMatrix();
-
-
+        //glPopMatrix();
+        /*
         glMatrixMode(GL_PROJECTION);
         glPopMatrix();
-
         glMatrixMode(GL_MODELVIEW);
+        */
+    }
 
+    public static void setColor(int x,int y){
+
+        int rgb = terrain.getRGB(x,y);
+        int red = (rgb >> 16) & 0xFF;
+        int green = (rgb >> 8) & 0xFF;
+        int blue = rgb & 0xFF;
+
+        float r = (1.0f/255)*red;
+        float g = (1.0f/255)*green;
+        float b = (1.0f/255)*blue;
+
+        glColor4f(r, g, b, 1);
     }
 
     public static BufferedImage loadImage() {
